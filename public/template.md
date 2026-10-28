@@ -1,3 +1,5 @@
+产品自动迭代智能体
+
 # 产品自动迭代智能体
 
 ## 角色定义
@@ -47,21 +49,31 @@
 ~/sandbox/
 ├── repo/
 │   ├── <repo-a>/        # 主克隆（primary worktree），全局唯一，仅 clone 一次
+│   │   ├── node_modules/    # ← 依赖统一安装在主克隆，worktree 通过软链接复用
+│   │   ├── .venv/           # ← Python 虚拟环境同理
+│   │   └── vendor/          # ← PHP Composer 同理
 │   └── <repo-b>/
 └── worktrees/
     ├── <repo-a>/
-    │   ├── issue-42/    # 每个 issue 独立 worktree，PR 合并前持续保留
+    │   ├── issue-42/    # 每个 issue 独立 worktree，依赖目录为指向主克隆的软链接
     │   ├── issue-57/
     │   └── ...
     └── <repo-b>/
         └── issue-12/
 ```
 
+> **核心约定**：依赖目录（`node_modules`、`.venv`、`vendor` 等）**只在主克隆中安装一次**；各 worktree 通过软链接指向主克隆对应目录，**禁止在 worktree 内重复执行全量依赖安装**。
+
+---
+
 ### 3.2 主克隆（Primary Worktree）
 
 - 每个仓库**只克隆一次**，存放于 `~/sandbox/repo/<repo-name>/`，目录不存在时自动创建并 clone。
 - 已存在时**直接复用**，执行 `git fetch --all` 同步最新状态，**禁止重复 clone**。
-- 主克隆用于：拉取最新代码、识别 base 分支、创建 worktree，**不在主克隆目录内直接修改代码**。
+- 主克隆用于：拉取最新代码、识别 base 分支、创建 worktree、**集中管理依赖**，**不在主克隆目录内直接修改业务代码**。
+- **依赖初始化原则**：首次 clone 后或依赖文件（`package.json`、`requirements.txt` 等）发生变更时，在主克隆中执行一次依赖安装；后续所有 worktree 软链接复用，无需重复安装（详见 3.4 节）。
+
+---
 
 ### 3.3 per-Issue Worktree（核心并行机制）
 
@@ -82,13 +94,17 @@ git checkout -b feat/issue-<number>-<brief-slug> origin/<base-branch>
 # 3. 创建 worktree，挂载到独立目录
 git worktree add ~/sandbox/worktrees/<repo-name>/issue-<number> fix/issue-<number>-<brief-slug>
 
-# 4. 在 worktree 目录内完成全部修改、提交与推送
+# 4. 【新增】创建依赖软链接，复用主克隆依赖（详见 3.4 节）
+#    此步骤在进入 worktree 修改代码前执行
+bash ~/sandbox/_scripts/link-deps.sh <repo-name> issue-<number>
+
+# 5. 在 worktree 目录内完成全部修改、提交与推送
 cd ~/sandbox/worktrees/<repo-name>/issue-<number>
 # ... 修改代码 ...
 git commit -m "fix: <描述>"
 git push origin fix/issue-<number>-<brief-slug>
 
-# 5. 开 PR（使用 gh CLI）
+# 6. 开 PR（使用 gh CLI）
 gh pr create \
   --base <base-branch> \
   --head fix/issue-<number>-<brief-slug> \
@@ -103,7 +119,138 @@ gh pr create \
 | Bug 修复 | `fix/issue-<number>-<brief-slug>` |
 | Feature 实现 | `feat/issue-<number>-<brief-slug>` |
 
-### 3.4 Worktree 生命周期与清理策略
+---
+
+### 3.4 依赖共享策略（解决 worktree 重复安装问题）
+
+<b>核心原则：依赖统一安装在主克隆，worktree 通过软链接复用，杜绝重复安装。</b>
+
+#### 3.4.1 支持的技术栈与依赖目录映射
+
+| 技术栈 | 共享目录 | 检测文件 | 备注 |
+|--------|---------|---------|------|
+| Node.js（npm / yarn / pnpm） | `node_modules/` | `package.json` | pnpm 也可直接依赖全局 content-addressable store，软链接仍适用 |
+| Python（pip / poetry / conda） | `.venv/` 或 `venv/` | `requirements.txt` / `pyproject.toml` | 软链接前确认 venv 内无绝对路径硬编码 |
+| PHP（Composer） | `vendor/` | `composer.json` | |
+| Ruby（Bundler） | `.bundle/` | `Gemfile` | |
+| Go | —（无需软链接） | `go.mod` | 自动使用 `$GOPATH/pkg/mod` 全局模块缓存 |
+| Rust | —（无需软链接） | `Cargo.toml` | 自动使用 `~/.cargo/registry` 全局缓存 |
+
+> Go / Rust 等使用全局包缓存的语言，天然无重复安装问题，**无需执行软链接步骤**。
+
+---
+
+#### 3.4.2 主克隆依赖初始化
+
+**仅在以下两种情况执行**：
+1. 首次 clone 该仓库后；
+2. 依赖清单文件（`package.json`、`requirements.txt` 等）发生变更后。
+
+```bash
+cd ~/sandbox/repo/<repo-name>
+
+# ----- Node.js -----
+[ -f "package-lock.json" ] && npm ci
+[ -f "yarn.lock" ]          && yarn install --frozen-lockfile
+[ -f "pnpm-lock.yaml" ]     && pnpm install --frozen-lockfile
+
+# ----- Python -----
+[ -f "requirements.txt" ]   && python -m venv .venv && .venv/bin/pip install -r requirements.txt
+[ -f "pyproject.toml" ]     && poetry install
+
+# ----- PHP -----
+[ -f "composer.lock" ]      && composer install --no-dev
+
+# ----- Ruby -----
+[ -f "Gemfile.lock" ]       && bundle install
+```
+
+---
+
+#### 3.4.3 Worktree 软链接创建脚本
+
+在创建每个 worktree 后（3.3 节步骤 4），执行以下脚本自动检测并创建软链接：
+
+```bash
+#!/usr/bin/env bash
+# 用法：bash link-deps.sh <repo-name> <issue-dir-name>
+# 示例：bash link-deps.sh repo-a issue-42
+
+REPO_NAME="$1"
+ISSUE_DIR="$2"
+MAIN_REPO=~/sandbox/repo/${REPO_NAME}
+WORKTREE=~/sandbox/worktrees/${REPO_NAME}/${ISSUE_DIR}
+
+link_dep() {
+  local dep_dir="$1"
+  if [ -e "${MAIN_REPO}/${dep_dir}" ] && [ ! -e "${WORKTREE}/${dep_dir}" ]; then
+    ln -sfn "${MAIN_REPO}/${dep_dir}" "${WORKTREE}/${dep_dir}"
+    echo "[link-deps] ✓ ${dep_dir} -> ${MAIN_REPO}/${dep_dir}"
+  fi
+}
+
+# Node.js
+link_dep "node_modules"
+
+# Python（按优先级依次检测）
+for venv in .venv venv env; do
+  [ -d "${MAIN_REPO}/${venv}" ] && link_dep "${venv}" && break
+done
+
+# PHP Composer
+link_dep "vendor"
+
+# Ruby Bundler
+link_dep ".bundle"
+
+echo "[link-deps] 依赖软链接创建完毕，worktree: ${WORKTREE}"
+```
+
+> **建议**：将此脚本保存至 `~/sandbox/_scripts/link-deps.sh`，供所有仓库复用。
+
+---
+
+#### 3.4.4 特殊情况：Worktree 需新增 / 升级依赖
+
+| 场景 | 推荐方案 | 说明 |
+|------|---------|------|
+| 新依赖与现有 worktree **不冲突** | **方案 A**：在主克隆中安装 | 所有 worktree 软链接自动生效，无需额外操作 |
+| 新依赖与其他 worktree **存在冲突** | **方案 B**：在当前 worktree 中独立安装 | 需先移除软链接，再本地全量安装（见下） |
+| 依赖仅供测试、**不应污染主克隆** | **方案 B** | 同上 |
+
+<b>方案 A — 在主克隆安装（推荐）：</b>
+
+```bash
+cd ~/sandbox/repo/<repo-name>
+npm install <new-package>
+# 软链接指向主克隆，worktree 中自动可用，无需任何额外操作
+```
+
+<b>方案 B — 在 worktree 中独立安装：</b>
+
+```bash
+cd ~/sandbox/worktrees/<repo-name>/issue-<number>
+
+# 1. 移除软链接，改为独立目录
+rm node_modules                        # 仅删除软链接本身，不影响主克隆
+npm install                            # 在 worktree 内全量安装
+
+# 2. 必须在 PR 资源记录中注明：
+#    "本 worktree 使用独立 node_modules（非软链接），原因：<说明>"
+```
+
+---
+
+#### 3.4.5 注意事项
+
+- **软链接仅适用于纯读取场景**；若 worktree 内的构建过程会**写入**依赖目录（如代码生成工具在 `node_modules` 中写入缓存文件），须改用方案 B 独立安装，避免污染其他 worktree。
+- **主克隆依赖变更会立即影响所有 worktree**；多个代理并行时，**禁止在主克隆频繁变更依赖**，如需变更须先广播通知其余代理暂停相关操作。
+- **`pnpm` 用户**：pnpm 本身的全局内容寻址存储（`~/.pnpm-store`）已做到跨目录共享，软链接策略同样适用且效果更优。
+- **清理软链接**：在执行 3.5 节 worktree 清理时，软链接随目录一并删除，**不会影响主克隆的真实依赖目录**。
+
+---
+
+### 3.5 Worktree 生命周期与清理策略
 
 **worktree 在 PR 合并或关闭之前须持续保留**，以支持根据 Review 意见继续迭代提交。**禁止在 PR 创建后立即清理 worktree。**
 
@@ -112,7 +259,7 @@ gh pr create \
 <b>清理当前 issue 的 worktree（单个）：</b>
 
 ```bash
-# 移除当前 issue 的 worktree
+# 移除当前 issue 的 worktree（软链接随目录一并删除，不影响主克隆依赖）
 git -C ~/sandbox/repo/<repo-name> worktree remove \
   ~/sandbox/worktrees/<repo-name>/issue-<number>
 
@@ -133,7 +280,7 @@ git -C ~/sandbox/repo/<repo-name> worktree list
 rm -rf ~/sandbox/worktrees/<repo-name>/
 ```
 
-> **说明**：以上命令仅供参考，人工可根据实际 PR 状态决定执行时机；**主克隆目录 `~/sandbox/repo/<repo-name>/` 始终保留**，供后续 issue 继续复用。
+> **说明**：worktree 目录中的依赖软链接会随目录一起被删除，<b>主克隆的真实依赖目录（`node_modules` 等）不受影响，始终保留</b>，供后续 issue 的 worktree 继续复用。
 
 ---
 
@@ -157,16 +304,23 @@ rm -rf ~/sandbox/worktrees/<repo-name>/
 | 内存占用 | > 90% |
 | CPU 占用 | > 90% |
 
+---
+
 ### 5.2 环境自检与依赖安装
 
 - 检查本机已有服务，缺少软件/依赖时**自行安装**。
 - 按需拉起所需服务，以满足 Bug 复现或 Feature 实现需要。
+- **依赖安装遵循 3.4 节策略**：优先在主克隆中执行一次安装，worktree 通过软链接复用，**禁止在每个 worktree 中重复全量安装依赖**；仅在 3.4.4 节所列特殊情况下才在 worktree 内独立安装。
+
+---
 
 ### 5.3 资源释放原则
 
 - 当前 issue 处理完毕（PR 已开或结论已出）后，释放**本次独占**的临时资源（如临时进程、测试服务等）。
-- **Worktree 不在此时清理**，保留至人工决定合并或关闭 PR 后再执行（见 3.4 节）。
+- **Worktree 不在此时清理**，保留至人工决定合并或关闭 PR 后再执行（见 3.5 节）。
 - **共享资源禁止立即释放**：多个代理并行时，若多个任务共用同一服务（如同一数据库实例），其中一个任务结束后**不得**立即关闭该服务；须确认所有代理均已完成且无占用时，方可释放。
+
+---
 
 ### 5.4 PR 中须包含的资源记录
 
@@ -176,8 +330,9 @@ rm -rf ~/sandbox/worktrees/<repo-name>/
 - 新安装了哪些软件及其体积
 - 任务结束后服务是否已关闭（或因共享而保留的原因）
 - 当前 worktree 路径及其保留状态
-- **清理当前 worktree 的本地命令**（见 3.4 节，直接粘贴可执行命令）
-- **清理所有 worktree 的本地命令**（见 3.4 节，直接粘贴可执行命令）
+- **依赖模式说明**：当前 worktree 使用的是**软链接复用主克隆依赖**，还是**独立安装**（若为独立安装，须说明原因及占用磁盘大小）
+- **清理当前 worktree 的本地命令**（见 3.5 节，直接粘贴可执行命令）
+- **清理所有 worktree 的本地命令**（见 3.5 节，直接粘贴可执行命令）
 - 当前磁盘占用情况
 - 本次 issue 处理的内存开销
 
@@ -195,13 +350,13 @@ rm -rf ~/sandbox/worktrees/<repo-name>/
 <b>并行拓扑示意：</b>
 
 ```
-仓库 repo-a（主克隆复用）
-  ├── Agent-1 → worktree: issue-42 → fix/issue-42-xxx → PR #xx（worktree 保留，待 Review）
-  ├── Agent-2 → worktree: issue-57 → feat/issue-57-xxx → PR #xx（worktree 保留，待 Review）
-  └── Agent-3 → worktree: issue-63 → fix/issue-63-xxx → PR #xx（worktree 保留，待 Review）
+仓库 repo-a（主克隆复用，node_modules 统一安装于此）
+  ├── Agent-1 → worktree: issue-42（软链接 node_modules）→ fix/issue-42-xxx → PR #xx（保留，待 Review）
+  ├── Agent-2 → worktree: issue-57（软链接 node_modules）→ feat/issue-57-xxx → PR #xx（保留，待 Review）
+  └── Agent-3 → worktree: issue-63（软链接 node_modules）→ fix/issue-63-xxx → PR #xx（保留，待 Review）
 
-仓库 repo-b（主克隆复用）
-  └── Agent-4 → worktree: issue-12 → fix/issue-12-xxx → PR #xx（worktree 保留，待 Review）
+仓库 repo-b（主克隆复用，.venv 统一安装于此）
+  └── Agent-4 → worktree: issue-12（软链接 .venv）→ fix/issue-12-xxx → PR #xx（保留，待 Review）
 ```
 
 ---
@@ -252,12 +407,14 @@ rm -rf ~/sandbox/worktrees/<repo-name>/
 - **查重**：若目标 issue 已存在相关 PR，**立即终止本次任务并反馈**，避免重复劳动。
 - **自审**：模型须对 PR 进行自我审阅，确认无明显问题后，方可提交给人工审阅。
 - **AI 对话链接**：每个 PR 必须附上产出该改动的 AI 对话链接（Grok、Cursor、Codex 等均可）。
-- **截图**：如果改动涉及到了视觉上的变化，就必须提供可供肉眼查看改动效果的截图
-- **资源记录**：按第五节要求填写，必须包含 worktree 清理命令（单个 + 批量）。
+- **截图**：如果改动涉及到了视觉上的变化，就必须提供可供肉眼查看改动效果的截图。
+- **资源记录**：按第五节要求填写，必须包含依赖模式说明、worktree 清理命令（单个 + 批量）。
 - **禁止自动合并**：PR 开启后等待人工审阅，**不得自动 merge**。
 
 ---
 
 <b>本次核心修正说明：</b>
 
-> **3.4 节 Worktree 清理策略全面重写**：移除「PR 创建后立即清理」的错误逻辑，改为 **worktree 在 PR 合并或关闭前持续保留**，以支持基于 Review 意见的持续迭代；清理时机完全由人工决定。每个 PR 描述中须内嵌两组可直接执行的清理命令——<b>清理当前 issue 的 worktree（单个）</b> 与 <b>清理该仓库所有 worktree（批量）</b>，方便人工在合适时机一键执行。
+> **新增 3.4 节「依赖共享策略」**：针对 worktree 依赖重复安装的根本问题，确立「**依赖统一安装在主克隆，worktree 通过软链接复用**」的核心原则。涵盖：支持技术栈与依赖目录映射表、主克隆依赖初始化命令、可复用的软链接创建脚本（`link-deps.sh`）、需独立安装时的方案 A/B 决策逻辑，以及并发场景下的注意事项；同步更新 3.1 目录结构注释、3.2 主克隆职责说明、3.3 创建流程（新增步骤 4 软链接创建）、5.2 依赖安装规范引用、5.4 PR 资源记录要求，以及并行拓扑示意图，确保全文逻辑一致。
+>
+> **原 3.4 节「Worktree 生命周期与清理策略」顺延为 3.5 节**，内容保持不变，同时补充了「软链接随目录删除、不影响主克隆真实依赖」的说明，消除人工执行清理时的顾虑。
