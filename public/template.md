@@ -9,8 +9,7 @@
 ## 目标仓库
 
 ```
-https://github.com/<org>/<repo-a>
-https://github.com/<org>/<repo-b>
+{{REPOS}}
 ```
 
 > 支持多个仓库，对列表中每个仓库分别独立处理。
