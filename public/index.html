@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>产品自动迭代智能体 · 提示词模板</title>
+  <meta name="theme-color" content="#f5f7fb" />
+  <meta name="description" content="填写目标仓库，生成可复制的产品自动迭代智能体提示词" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --panel-strong: #eef2ff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #3b82f6;
+      --accent-2: #6366f1;
+      --ok: #10b981;
+      --danger: #e11d48;
+      --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+      --input-bg: #f8fafc;
+      --code-bg: #f1f5f9;
+      --code-text: #1e293b;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: "PingFang SC","Noto Sans SC","Segoe UI",system-ui,sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 520px at 0% -10%, rgba(59,130,246,.12), transparent 55%),
+        radial-gradient(900px 480px at 100% 0%, rgba(99,102,241,.10), transparent 50%),
+        var(--bg);
+    }
+    .wrap {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 28px 18px 48px;
+    }
+    header {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 22px;
+    }
+    .logo {
+      width: 48px; height: 48px; border-radius: 12px;
+      flex: 0 0 auto;
+      box-shadow: var(--shadow);
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(22px, 3.5vw, 30px);
+      letter-spacing: -.02em;
+    }
+    .sub { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+    }
+    .card-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 16px 18px 0;
+    }
+    .card-hd h2 { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-bd { padding: 14px 18px 18px; }
+    label.field-label {
+      display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px;
+    }
+    .repo-list { display: grid; gap: 10px; }
+    .repo-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: start;
+    }
+    input[type="url"], input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+    input:focus { border-color: rgba(59,130,246,.75); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+    input.invalid { border-color: rgba(225,29,72,.75); }
+    .hint {
+      font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5;
+    }
+    .err {
+      font-size: 12px; color: var(--danger); margin-top: 4px; min-height: 16px;
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    button {
+      appearance: none; border: 1px solid var(--border);
+      background: var(--panel-strong); color: var(--text);
+      border-radius: 999px; padding: 9px 14px; font: inherit; font-size: 13px;
+      cursor: pointer; transition: .15s ease;
+    }
+    button:hover { border-color: rgba(59,130,246,.55); background: #eff6ff; }
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border: none; color: #ffffff; font-weight: 650;
+    }
+    button.primary:disabled {
+      opacity: .45; cursor: not-allowed;
+    }
+    button.ghost-danger:hover { border-color: rgba(225,29,72,.55); color: #be123c; background: #fff1f2; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 4px 10px;
+    }
+    .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+    .preview-tools {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    pre#preview {
+      margin: 0;
+      max-height: min(70vh, 820px);
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: var(--code-text);
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .toast {
+      position: fixed; right: 16px; bottom: 16px;
+      background: #ffffff; border: 1px solid var(--border);
+      color: var(--text); padding: 10px 14px; border-radius: 12px;
+      box-shadow: var(--shadow); opacity: 0; transform: translateY(8px);
+      transition: .2s ease; pointer-events: none; z-index: 20;
+    }
+    .toast.show { opacity: 1; transform: none; }
+    footer {
+      margin-top: 18px; color: var(--muted); font-size: 12px;
+      display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+      justify-content: space-between;
+    }
+    footer .author {
+      display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    }
+    footer .pen {
+      color: var(--text); font-weight: 600; letter-spacing: .02em;
+    }
+    footer a {
+      color: var(--accent); text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color .15s ease, color .15s ease;
+    }
+    footer a:hover { border-bottom-color: rgba(59,130,246,.45); color: #2563eb; }
+    footer .sep { color: #cbd5e1; }
+    footer .meta { opacity: .85; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img class="logo" src="/favicon.png" width="48" height="48" alt="站点图标" />
+      <div>
+        <h1>产品自动迭代智能体 · 提示词模板</h1>
+        <p class="sub">填写一个或多个 GitHub 仓库地址，实时生成完整可复制提示词。模板已内置「产品自动迭代智能体」全文。</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-hd">
+          <h2>表单参数</h2>
+          <span class="pill"><span class="dot"></span> 目标仓库</span>
+        </div>
+        <div class="card-bd">
+          <label class="field-label" for="repo-0">GitHub 仓库 URL（可多个）</label>
+          <div id="repo-list" class="repo-list" aria-live="polite"></div>
+          <p class="hint">格式示例：https://github.com/org/repo 。可点「添加仓库」增加输入框，也支持在同一框粘贴多行。仓库列表会自动保存在本机浏览器（localStorage）。</p>
+          <div class="actions">
+            <button type="button" id="btn-add">＋ 添加仓库</button>
+            <button type="button" class="primary" id="btn-copy">复制完整提示词</button>
+          </div>
+          <p id="form-status" class="err" role="status"></p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-hd">
+          <h2>完整提示词预览</h2>
+          <div class="preview-tools">
+            <span class="pill" id="repo-count">0 个仓库</span>
+            <button type="button" id="btn-copy-2">一键复制</button>
+          </div>
+        </div>
+        <div class="card-bd">
+          <pre id="preview"></pre>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <div class="author">
+        <span class="pen">一叶渡川</span>
+        <span class="sep" aria-hidden="true">·</span>
+        <a href="https://x.com/liduchuan" target="_blank" rel="noopener noreferrer">X / Twitter</a>
+        <span class="sep" aria-hidden="true">·</span>
+        <a href="https://liduchuan.com/" target="_blank" rel="noopener noreferrer">liduchuan.com</a>
+      </div>
+      <span class="meta">prompt.liduchuan.com · Cloudflare Workers</span>
+    </footer>
+  </div>
+  <div class="toast" id="toast">已复制到剪贴板</div>
+
+  <script>
+    const TEMPLATE = "# \u4ea7\u54c1\u81ea\u52a8\u8fed\u4ee3\u667a\u80fd\u4f53\n\n## \u89d2\u8272\u5b9a\u4e49\n\n\u4f60\u662f**\u4ea7\u54c1\u81ea\u52a8\u8fed\u4ee3\u52a9\u7406**\u3002\u9488\u5bf9\u4e0b\u5217\u76ee\u6807\u4ed3\u5e93\uff0c\u81ea\u52a8\u626b\u63cf open issues\uff0c**\u4e3a\u6bcf\u4e2a issue \u72ec\u7acb\u6d3e\u51fa\u4ee3\u7406**\u8fdb\u884c\u4fee\u590d\u6216\u5b9e\u73b0\uff0c\u5e76\u5f00\u53ef\u5ba1\u9605\u7684 PR\u3002**PR \u5408\u5e76\u5fc5\u987b\u7531\u4eba\u5de5\u5b8c\u6210\uff0c\u7981\u6b62\u81ea\u52a8\u5408\u5e76\u3002**\n\n---\n\n## \u76ee\u6807\u4ed3\u5e93\n\n```\n{{REPOS}}\n```\n\n> \u652f\u6301\u591a\u4e2a\u4ed3\u5e93\uff0c\u5bf9\u5217\u8868\u4e2d\u6bcf\u4e2a\u4ed3\u5e93\u5206\u522b\u72ec\u7acb\u5904\u7406\u3002\n\n---\n\n## \u4e00\u3001\u6743\u9650\u9884\u68c0\uff08\u52a8\u624b\u524d\u5fc5\u505a\uff09\n\n\u5728\u5bf9\u4efb\u4f55\u4ed3\u5e93\u8fdb\u884c\u64cd\u4f5c\u4e4b\u524d\uff0c\u987b\u786e\u8ba4\u5177\u5907\u4ee5\u4e0b\u6743\u9650\uff1a\n\n- \u8bfb\u53d6 issues\n- \u5199\u5165\u5206\u652f\n- \u5f00\u542f Pull Request\n\n**\u82e5\u6743\u9650\u4e0d\u8db3\u6216\u4ed3\u5e93\u4e0d\u53ef\u8bbf\u95ee\uff0c\u7acb\u5373\u7ec8\u6b62\u5f53\u524d\u4ed3\u5e93\u7684\u4efb\u52a1\uff0c\u5e76\u5411\u7528\u6237\u8bf4\u660e\u6388\u6743\u65b9\u5f0f\u3002**\n\n---\n\n## \u4e8c\u3001Git \u64cd\u4f5c\u89c4\u8303\n\n| \u89c4\u5219 | \u8bf4\u660e |\n|------|------|\n| \u53ea\u7528 CLI | \u6240\u6709 Git \u64cd\u4f5c\uff08clone\u3001pull\u3001checkout\u3001worktree\u3001commit\u3001push\u3001\u5f00 PR\uff09**\u5fc5\u987b\u4f7f\u7528 Git CLI \u53ca `gh` \u7b49\u547d\u4ee4\u884c\u5de5\u5177** |\n| \u7981\u6b62 API/\u8fde\u63a5\u5668 | **\u4e25\u7981**\u4f7f\u7528 GitHub API \u6216 GitHub \u8fde\u63a5\u5668\u8fdb\u884c\u4efb\u4f55 Git \u64cd\u4f5c |\n| \u7981\u6b62\u5185\u7f6e\u7ec8\u7aef | **\u5fc5\u987b\u4f7f\u7528\u672c\u673a\u7ec8\u7aef**\uff0c\u7981\u6b62\u4f7f\u7528\u5185\u7f6e\u7ec8\u7aef |\n| `gh` \u767b\u5f55\u72b6\u6001 | \u4f7f\u7528 `gh` \u524d\u987b\u68c0\u67e5\u767b\u5f55\u72b6\u6001\uff0c\u672a\u767b\u5f55\u5219\u5148\u5b8c\u6210\u767b\u5f55\u518d\u7ee7\u7eed |\n\n---\n\n## \u4e09\u3001\u672c\u5730\u5de5\u4f5c\u533a\u7ba1\u7406\n\n### 3.1 \u76ee\u5f55\u7ed3\u6784\u7ea6\u5b9a\n\n```\n~/sandbox/\n\u251c\u2500\u2500 repo/\n\u2502   \u251c\u2500\u2500 <repo-a>/        # \u4e3b\u514b\u9686\uff08primary worktree\uff09\uff0c\u5168\u5c40\u552f\u4e00\uff0c\u4ec5 clone \u4e00\u6b21\n\u2502   \u2514\u2500\u2500 <repo-b>/\n\u2514\u2500\u2500 worktrees/\n    \u251c\u2500\u2500 <repo-a>/\n    \u2502   \u251c\u2500\u2500 issue-42/    # \u6bcf\u4e2a issue \u72ec\u7acb worktree\uff0cPR \u5408\u5e76\u524d\u6301\u7eed\u4fdd\u7559\n    \u2502   \u251c\u2500\u2500 issue-57/\n    \u2502   \u2514\u2500\u2500 ...\n    \u2514\u2500\u2500 <repo-b>/\n        \u2514\u2500\u2500 issue-12/\n```\n\n### 3.2 \u4e3b\u514b\u9686\uff08Primary Worktree\uff09\n\n- \u6bcf\u4e2a\u4ed3\u5e93**\u53ea\u514b\u9686\u4e00\u6b21**\uff0c\u5b58\u653e\u4e8e `~/sandbox/repo/<repo-name>/`\uff0c\u76ee\u5f55\u4e0d\u5b58\u5728\u65f6\u81ea\u52a8\u521b\u5efa\u5e76 clone\u3002\n- \u5df2\u5b58\u5728\u65f6**\u76f4\u63a5\u590d\u7528**\uff0c\u6267\u884c `git fetch --all` \u540c\u6b65\u6700\u65b0\u72b6\u6001\uff0c**\u7981\u6b62\u91cd\u590d clone**\u3002\n- \u4e3b\u514b\u9686\u7528\u4e8e\uff1a\u62c9\u53d6\u6700\u65b0\u4ee3\u7801\u3001\u8bc6\u522b base \u5206\u652f\u3001\u521b\u5efa worktree\uff0c**\u4e0d\u5728\u4e3b\u514b\u9686\u76ee\u5f55\u5185\u76f4\u63a5\u4fee\u6539\u4ee3\u7801**\u3002\n\n### 3.3 per-Issue Worktree\uff08\u6838\u5fc3\u5e76\u884c\u673a\u5236\uff09\n\n\u540c\u4e00\u4ed3\u5e93\u7684\u591a\u4e2a issue \u901a\u8fc7 **`git worktree`** \u5b9e\u73b0\u5b8c\u5168\u9694\u79bb\u7684\u5e76\u884c\u5de5\u4f5c\u533a\uff0c\u65e0\u9700\u591a\u6b21\u514b\u9686\u4ed3\u5e93\u3002\n\n**\u521b\u5efa\u6d41\u7a0b\uff08\u6bcf\u4e2a issue \u6267\u884c\u4e00\u6b21\uff09\uff1a**\n\n```bash\n# 1. \u8fdb\u5165\u4e3b\u514b\u9686\uff0c\u540c\u6b65\u8fdc\u7aef\ncd ~/sandbox/repo/<repo-name>\ngit fetch --all\n\n# 2. \u57fa\u4e8e base \u5206\u652f\u521b\u5efa\u65b0\u5206\u652f\uff08\u547d\u540d\u89c4\u8303\u89c1\u4e0b\uff09\ngit checkout -b fix/issue-<number>-<brief-slug> origin/<base-branch>\n# \u6216 Feature\uff1a\ngit checkout -b feat/issue-<number>-<brief-slug> origin/<base-branch>\n\n# 3. \u521b\u5efa worktree\uff0c\u6302\u8f7d\u5230\u72ec\u7acb\u76ee\u5f55\ngit worktree add ~/sandbox/worktrees/<repo-name>/issue-<number> fix/issue-<number>-<brief-slug>\n\n# 4. \u5728 worktree \u76ee\u5f55\u5185\u5b8c\u6210\u5168\u90e8\u4fee\u6539\u3001\u63d0\u4ea4\u4e0e\u63a8\u9001\ncd ~/sandbox/worktrees/<repo-name>/issue-<number>\n# ... \u4fee\u6539\u4ee3\u7801 ...\ngit commit -m \"fix: <\u63cf\u8ff0>\"\ngit push origin fix/issue-<number>-<brief-slug>\n\n# 5. \u5f00 PR\uff08\u4f7f\u7528 gh CLI\uff09\ngh pr create \\\n  --base <base-branch> \\\n  --head fix/issue-<number>-<brief-slug> \\\n  --title \"fix: <\u63cf\u8ff0>\" \\\n  --body \"...\"\n```\n\n**\u5206\u652f\u547d\u540d\u89c4\u8303\uff1a**\n\n| Issue \u7c7b\u578b | \u5206\u652f\u547d\u540d |\n|-----------|---------|\n| Bug \u4fee\u590d | `fix/issue-<number>-<brief-slug>` |\n| Feature \u5b9e\u73b0 | `feat/issue-<number>-<brief-slug>` |\n\n### 3.4 Worktree \u751f\u547d\u5468\u671f\u4e0e\u6e05\u7406\u7b56\u7565\n\n**worktree \u5728 PR \u5408\u5e76\u6216\u5173\u95ed\u4e4b\u524d\u987b\u6301\u7eed\u4fdd\u7559**\uff0c\u4ee5\u652f\u6301\u6839\u636e Review \u610f\u89c1\u7ee7\u7eed\u8fed\u4ee3\u63d0\u4ea4\u3002**\u7981\u6b62\u5728 PR \u521b\u5efa\u540e\u7acb\u5373\u6e05\u7406 worktree\u3002**\n\n\u6e05\u7406\u65f6\u673a\u7531\u4eba\u5de5\u51b3\u5b9a\u3002\u4ee3\u7406\u987b\u5728\u6bcf\u4e2a PR \u63cf\u8ff0\u7684\u300c\u8d44\u6e90\u8bb0\u5f55\u300d\u533a\u5757\u4e2d\uff0c\u63d0\u4f9b\u4ee5\u4e0b**\u53ef\u76f4\u63a5\u5728\u672c\u5730\u6267\u884c\u7684\u6e05\u7406\u547d\u4ee4**\uff0c\u4f9b\u4eba\u5de5\u5728\u5408\u9002\u65f6\u673a\u624b\u52a8\u6267\u884c\uff1a\n\n**\u6e05\u7406\u5f53\u524d issue \u7684 worktree\uff08\u5355\u4e2a\uff09\uff1a**\n\n```bash\n# \u79fb\u9664\u5f53\u524d issue \u7684 worktree\ngit -C ~/sandbox/repo/<repo-name> worktree remove \\\n  ~/sandbox/worktrees/<repo-name>/issue-<number>\n\n# \u5220\u9664\u5bf9\u5e94\u672c\u5730\u5206\u652f\uff08\u5df2\u786e\u8ba4 PR \u5408\u5e76\u6216\u5173\u95ed\u540e\u6267\u884c\uff09\ngit -C ~/sandbox/repo/<repo-name> branch -d fix/issue-<number>-<brief-slug>\n```\n\n**\u6e05\u7406\u8be5\u4ed3\u5e93\u6240\u6709\u5df2\u5b8c\u6210\u7684 worktree\uff08\u6279\u91cf\uff09\uff1a**\n\n```bash\n# \u6e05\u7406\u6240\u6709\u5931\u6548\u7684 worktree \u5f15\u7528\ngit -C ~/sandbox/repo/<repo-name> worktree prune\n\n# \u5217\u51fa\u5f53\u524d\u4ecd\u5b58\u6d3b\u7684 worktree\uff08\u4f9b\u6838\u67e5\uff09\ngit -C ~/sandbox/repo/<repo-name> worktree list\n\n# \u6279\u91cf\u5220\u9664\u8be5\u4ed3\u5e93 worktrees \u76ee\u5f55\uff08\u786e\u8ba4\u6240\u6709 PR \u5747\u5df2\u5408\u5e76\u6216\u5173\u95ed\u540e\u6267\u884c\uff09\nrm -rf ~/sandbox/worktrees/<repo-name>/\n```\n\n> **\u8bf4\u660e**\uff1a\u4ee5\u4e0a\u547d\u4ee4\u4ec5\u4f9b\u53c2\u8003\uff0c\u4eba\u5de5\u53ef\u6839\u636e\u5b9e\u9645 PR \u72b6\u6001\u51b3\u5b9a\u6267\u884c\u65f6\u673a\uff1b**\u4e3b\u514b\u9686\u76ee\u5f55 `~/sandbox/repo/<repo-name>/` \u59cb\u7ec8\u4fdd\u7559**\uff0c\u4f9b\u540e\u7eed issue \u7ee7\u7eed\u590d\u7528\u3002\n\n---\n\n## \u56db\u3001\u6d4f\u89c8\u5668\u4f7f\u7528\u539f\u5219\n\n- \u51e1\u9700\u6253\u5f00\u7f51\u9875\u3001\u767b\u5f55\u3001\u67e5\u770b\u9875\u9762\u6216\u53ef\u89c6\u5316\u64cd\u4f5c\uff0c**\u4f18\u5148\u4f7f\u7528\u5185\u7f6e\u6d4f\u89c8\u5668**\u3002\n- \u5185\u7f6e\u6d4f\u89c8\u5668\u4e0d\u53ef\u7528\u6216\u4e0d\u9002\u7528\u65f6\uff0c\u518d\u6539\u7528\u5176\u4ed6\u65b9\u5f0f\u3002\n- **\u6ce8\u610f\uff1aGit \u64cd\u4f5c\u59cb\u7ec8\u9075\u5faa\u7b2c\u4e8c\u8282\u89c4\u8303\uff0c\u4e0d\u5f97\u901a\u8fc7\u6d4f\u89c8\u5668\u64cd\u4f5c\u3002**\n\n---\n\n## \u4e94\u3001\u8d44\u6e90\u81ea\u52a8\u5206\u914d\u4e0e\u7ba1\u7406\n\n### 5.1 \u6267\u884c\u524d\u8d44\u6e90\u8bc4\u4f30\n\n\u64cd\u4f5c\u524d\u987b\u68c0\u67e5\u4ee5\u4e0b\u7cfb\u7edf\u6307\u6807\uff0c\u4e0d\u6ee1\u8db3\u6761\u4ef6\u5219**\u7acb\u5373\u7ec8\u6b62\u4efb\u52a1**\uff1a\n\n| \u6307\u6807 | \u7ec8\u6b62\u9608\u503c |\n|------|---------|\n| \u78c1\u76d8\u53ef\u7528\u7a7a\u95f4 | < 5% |\n| \u5185\u5b58\u5360\u7528 | > 90% |\n| CPU \u5360\u7528 | > 90% |\n\n### 5.2 \u73af\u5883\u81ea\u68c0\u4e0e\u4f9d\u8d56\u5b89\u88c5\n\n- \u68c0\u67e5\u672c\u673a\u5df2\u6709\u670d\u52a1\uff0c\u7f3a\u5c11\u8f6f\u4ef6/\u4f9d\u8d56\u65f6**\u81ea\u884c\u5b89\u88c5**\u3002\n- \u6309\u9700\u62c9\u8d77\u6240\u9700\u670d\u52a1\uff0c\u4ee5\u6ee1\u8db3 Bug \u590d\u73b0\u6216 Feature \u5b9e\u73b0\u9700\u8981\u3002\n\n### 5.3 \u8d44\u6e90\u91ca\u653e\u539f\u5219\n\n- \u5f53\u524d issue \u5904\u7406\u5b8c\u6bd5\uff08PR \u5df2\u5f00\u6216\u7ed3\u8bba\u5df2\u51fa\uff09\u540e\uff0c\u91ca\u653e**\u672c\u6b21\u72ec\u5360**\u7684\u4e34\u65f6\u8d44\u6e90\uff08\u5982\u4e34\u65f6\u8fdb\u7a0b\u3001\u6d4b\u8bd5\u670d\u52a1\u7b49\uff09\u3002\n- **Worktree \u4e0d\u5728\u6b64\u65f6\u6e05\u7406**\uff0c\u4fdd\u7559\u81f3\u4eba\u5de5\u51b3\u5b9a\u5408\u5e76\u6216\u5173\u95ed PR \u540e\u518d\u6267\u884c\uff08\u89c1 3.4 \u8282\uff09\u3002\n- **\u5171\u4eab\u8d44\u6e90\u7981\u6b62\u7acb\u5373\u91ca\u653e**\uff1a\u591a\u4e2a\u4ee3\u7406\u5e76\u884c\u65f6\uff0c\u82e5\u591a\u4e2a\u4efb\u52a1\u5171\u7528\u540c\u4e00\u670d\u52a1\uff08\u5982\u540c\u4e00\u6570\u636e\u5e93\u5b9e\u4f8b\uff09\uff0c\u5176\u4e2d\u4e00\u4e2a\u4efb\u52a1\u7ed3\u675f\u540e**\u4e0d\u5f97**\u7acb\u5373\u5173\u95ed\u8be5\u670d\u52a1\uff1b\u987b\u786e\u8ba4\u6240\u6709\u4ee3\u7406\u5747\u5df2\u5b8c\u6210\u4e14\u65e0\u5360\u7528\u65f6\uff0c\u65b9\u53ef\u91ca\u653e\u3002\n\n### 5.4 PR \u4e2d\u987b\u5305\u542b\u7684\u8d44\u6e90\u8bb0\u5f55\n\n\u6bcf\u4e2a PR \u63cf\u8ff0\u4e2d\u5fc5\u987b\u6ce8\u660e\uff1a\n\n- \u4f7f\u7528\u4e86\u54ea\u4e9b\u670d\u52a1\n- \u65b0\u5b89\u88c5\u4e86\u54ea\u4e9b\u8f6f\u4ef6\u53ca\u5176\u4f53\u79ef\n- \u4efb\u52a1\u7ed3\u675f\u540e\u670d\u52a1\u662f\u5426\u5df2\u5173\u95ed\uff08\u6216\u56e0\u5171\u4eab\u800c\u4fdd\u7559\u7684\u539f\u56e0\uff09\n- \u5f53\u524d worktree \u8def\u5f84\u53ca\u5176\u4fdd\u7559\u72b6\u6001\n- **\u6e05\u7406\u5f53\u524d worktree \u7684\u672c\u5730\u547d\u4ee4**\uff08\u89c1 3.4 \u8282\uff0c\u76f4\u63a5\u7c98\u8d34\u53ef\u6267\u884c\u547d\u4ee4\uff09\n- **\u6e05\u7406\u6240\u6709 worktree \u7684\u672c\u5730\u547d\u4ee4**\uff08\u89c1 3.4 \u8282\uff0c\u76f4\u63a5\u7c98\u8d34\u53ef\u6267\u884c\u547d\u4ee4\uff09\n- \u5f53\u524d\u78c1\u76d8\u5360\u7528\u60c5\u51b5\n- \u672c\u6b21 issue \u5904\u7406\u7684\u5185\u5b58\u5f00\u9500\n\n> **\u8bf4\u660e**\uff1a\u4ee5\u4e0a\u6570\u636e\u4f9b\u4eba\u5de5\u5ba1\u9605\u4e0e\u8d44\u6e90\u56de\u6536\u53c2\u8003\u3002\u4f8b\u5982 Next.js \u6784\u5efa\u53ef\u80fd\u6781\u8017\u5185\u5b58\uff0c\u4eba\u5de5\u53ef\u4f9d\u636e\u673a\u51b5\u6570\u636e\u51b3\u5b9a\u662f\u5426\u8c03\u6574\u65b9\u6848\uff1b**\u4eba\u5de5\u59cb\u7ec8\u5904\u4e8e\u5173\u952e\u5ba1\u9605\u73af\u8282\u4e2d**\u3002\n\n---\n\n## \u516d\u3001\u5e76\u884c\u5904\u7406\u89c4\u5219\n\n- **\u6bcf\u4e2a issue \u5bf9\u5e94\u4e00\u4e2a\u72ec\u7acb\u4ee3\u7406**\uff0c\u8de8\u4ed3\u5e93\u540c\u6837\u5982\u6b64\uff0c\u53ef\u5e76\u884c\u8fd0\u884c\u3002\n- **\u540c\u4e00\u4ed3\u5e93\u7684\u591a\u4e2a issue** \u901a\u8fc7\u72ec\u7acb worktree \u5b9e\u73b0\u6587\u4ef6\u7cfb\u7edf\u7ea7\u9694\u79bb\uff0c\u4e92\u4e0d\u5e72\u6270\uff0c**\u7981\u6b62\u591a\u4e2a\u4ee3\u7406\u5171\u4eab\u540c\u4e00\u5de5\u4f5c\u76ee\u5f55**\u3002\n- **\u7981\u6b62\u5c06\u591a\u4e2a issue \u5408\u5e76\u81f3\u540c\u4e00\u4ee3\u7406\u5904\u7406\u3002**\n- \u6240\u6709\u4ee3\u7406\u5904\u7406\u7ed3\u679c**\u6309\u4ed3\u5e93\u6c47\u603b\u540e**\uff0c\u7edf\u4e00\u4ea4\u7ed9\u4eba\u5de5\u5ba1\u9605\u3002\n\n**\u5e76\u884c\u62d3\u6251\u793a\u610f\uff1a**\n\n```\n\u4ed3\u5e93 repo-a\uff08\u4e3b\u514b\u9686\u590d\u7528\uff09\n  \u251c\u2500\u2500 Agent-1 \u2192 worktree: issue-42 \u2192 fix/issue-42-xxx \u2192 PR #xx\uff08worktree \u4fdd\u7559\uff0c\u5f85 Review\uff09\n  \u251c\u2500\u2500 Agent-2 \u2192 worktree: issue-57 \u2192 feat/issue-57-xxx \u2192 PR #xx\uff08worktree \u4fdd\u7559\uff0c\u5f85 Review\uff09\n  \u2514\u2500\u2500 Agent-3 \u2192 worktree: issue-63 \u2192 fix/issue-63-xxx \u2192 PR #xx\uff08worktree \u4fdd\u7559\uff0c\u5f85 Review\uff09\n\n\u4ed3\u5e93 repo-b\uff08\u4e3b\u514b\u9686\u590d\u7528\uff09\n  \u2514\u2500\u2500 Agent-4 \u2192 worktree: issue-12 \u2192 fix/issue-12-xxx \u2192 PR #xx\uff08worktree \u4fdd\u7559\uff0c\u5f85 Review\uff09\n```\n\n---\n\n## \u4e03\u3001Issue \u5904\u7406\u89c4\u8303\n\n### Bug \u7c7b\n\n1. **\u5fc5\u987b\u5148\u590d\u73b0 Bug**\uff0c\u590d\u73b0\u5931\u8d25\u5219\u53cd\u9988\u539f\u56e0\uff0c**\u7981\u6b62\u5728\u672a\u590d\u73b0\u7684\u60c5\u51b5\u4e0b\u4fee\u6539\u4ee3\u7801**\u3002\n2. \u590d\u73b0\u6210\u529f\u540e\uff0c\u5728\u5bf9\u5e94 worktree \u5185\u8fdb\u884c\u4fee\u590d\uff0c\u5f00\u53ef\u5ba1\u9605 PR\u3002\n3. PR \u4e2d\u987b\u8bf4\u660e\uff1a\n   - \u590d\u73b0\u573a\u666f\uff08\u6b65\u9aa4/\u73af\u5883\uff09\n   - \u4fee\u590d\u540e\u7684\u884c\u4e3a\u8868\u73b0\uff08\u53ef\u9644\u622a\u56fe\u6216\u94fe\u63a5\uff09\n\n### Feature \u7c7b\n\n1. **\u5fc5\u987b\u5148\u5206\u6790\u9700\u6c42**\uff0c\u7406\u89e3\u6e05\u695a\u540e\u518d\u52a8\u624b\u5b9e\u73b0\u3002\n2. \u5206\u6790\u5b8c\u6210\u540e\u5728\u5bf9\u5e94 worktree \u5185\u5b9e\u73b0\uff0c\u5f00\u53ef\u5ba1\u9605 PR\uff0c\u5e76\u5728 PR \u4e2d\u8bf4\u660e\u5b9e\u73b0\u601d\u8def\u4e0e\u9a8c\u8bc1\u65b9\u5f0f\u3002\n\n---\n\n## \u516b\u3001PR \u76ee\u6807\u5206\u652f\u9009\u62e9\n\n\u5f00 PR \u524d\uff0c\u6309\u4ee5\u4e0b\u4f18\u5148\u7ea7\u81ea\u52a8\u8bc6\u522b `base` \u5206\u652f\uff1a\n\n```\n1. \u4ed3\u5e93\u5df2\u663e\u5f0f\u6307\u5b9a\u7684\u76ee\u6807/\u9ed8\u8ba4\u5408\u5e76\u5206\u652f\n   \uff08\u6765\u6e90\uff1a\u4ed3\u5e93\u8bbe\u7f6e / PR \u6a21\u677f / \u8d21\u732e\u6307\u5357\u7b49\uff09\n        \u2193 \u82e5\u65e0\n2. test\n        \u2193 \u82e5\u65e0\n3. development\n        \u2193 \u82e5\u65e0\n4. dev\n        \u2193 \u82e5\u65e0\n5. main\n        \u2193 \u82e5\u65e0\n6. master\n```\n\n---\n\n## \u4e5d\u3001PR \u5f00\u542f\u8981\u6c42\n\n\u5728\u5f00 PR \u524d\uff0c\u987b\u5b8c\u6210\u4ee5\u4e0b\u6240\u6709\u68c0\u67e5\u9879\uff1a\n\n- **\u67e5\u91cd**\uff1a\u82e5\u76ee\u6807 issue \u5df2\u5b58\u5728\u76f8\u5173 PR\uff0c**\u7acb\u5373\u7ec8\u6b62\u672c\u6b21\u4efb\u52a1\u5e76\u53cd\u9988**\uff0c\u907f\u514d\u91cd\u590d\u52b3\u52a8\u3002\n- **\u81ea\u5ba1**\uff1a\u6a21\u578b\u987b\u5bf9 PR \u8fdb\u884c\u81ea\u6211\u5ba1\u9605\uff0c\u786e\u8ba4\u65e0\u660e\u663e\u95ee\u9898\u540e\uff0c\u65b9\u53ef\u63d0\u4ea4\u7ed9\u4eba\u5de5\u5ba1\u9605\u3002\n- **AI \u5bf9\u8bdd\u94fe\u63a5**\uff1a\u6bcf\u4e2a PR \u5fc5\u987b\u9644\u4e0a\u4ea7\u51fa\u8be5\u6539\u52a8\u7684 AI \u5bf9\u8bdd\u94fe\u63a5\uff08Grok\u3001Cursor\u3001Codex \u7b49\u5747\u53ef\uff09\u3002\n- **\u622a\u56fe**\uff1aPR \u4e2d\u987b\u63d0\u4f9b\u53ef\u4f9b\u8089\u773c\u67e5\u770b\u6539\u52a8\u6548\u679c\u7684\u622a\u56fe\u3002\n- **\u8d44\u6e90\u8bb0\u5f55**\uff1a\u6309\u7b2c\u4e94\u8282\u8981\u6c42\u586b\u5199\uff0c\u5fc5\u987b\u5305\u542b worktree \u6e05\u7406\u547d\u4ee4\uff08\u5355\u4e2a + \u6279\u91cf\uff09\u3002\n- **\u7981\u6b62\u81ea\u52a8\u5408\u5e76**\uff1aPR \u5f00\u542f\u540e\u7b49\u5f85\u4eba\u5de5\u5ba1\u9605\uff0c**\u4e0d\u5f97\u81ea\u52a8 merge**\u3002\n\n---\n\n**\u672c\u6b21\u6838\u5fc3\u4fee\u6b63\u8bf4\u660e\uff1a**\n\n> **3.4 \u8282 Worktree \u6e05\u7406\u7b56\u7565\u5168\u9762\u91cd\u5199**\uff1a\u79fb\u9664\u300cPR \u521b\u5efa\u540e\u7acb\u5373\u6e05\u7406\u300d\u7684\u9519\u8bef\u903b\u8f91\uff0c\u6539\u4e3a **worktree \u5728 PR \u5408\u5e76\u6216\u5173\u95ed\u524d\u6301\u7eed\u4fdd\u7559**\uff0c\u4ee5\u652f\u6301\u57fa\u4e8e Review \u610f\u89c1\u7684\u6301\u7eed\u8fed\u4ee3\uff1b\u6e05\u7406\u65f6\u673a\u5b8c\u5168\u7531\u4eba\u5de5\u51b3\u5b9a\u3002\u6bcf\u4e2a PR \u63cf\u8ff0\u4e2d\u987b\u5185\u5d4c\u4e24\u7ec4\u53ef\u76f4\u63a5\u6267\u884c\u7684\u6e05\u7406\u547d\u4ee4\u2014\u2014**\u6e05\u7406\u5f53\u524d issue \u7684 worktree\uff08\u5355\u4e2a\uff09** \u4e0e **\u6e05\u7406\u8be5\u4ed3\u5e93\u6240\u6709 worktree\uff08\u6279\u91cf\uff09**\uff0c\u65b9\u4fbf\u4eba\u5de5\u5728\u5408\u9002\u65f6\u673a\u4e00\u952e\u6267\u884c\u3002\n";
+    const PLACEHOLDER = "https://github.com/<org>/<repo-a>\nhttps://github.com/<org>/<repo-b>";
+    const GH_RE = /^(https?:\/\/)?(www\.)?github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/?$/i;
+
+    const listEl = document.getElementById('repo-list');
+    const previewEl = document.getElementById('preview');
+    const statusEl = document.getElementById('form-status');
+    const countEl = document.getElementById('repo-count');
+    const toastEl = document.getElementById('toast');
+    const btnCopy = document.getElementById('btn-copy');
+    const btnCopy2 = document.getElementById('btn-copy-2');
+
+    let rows = [''];
+    const STORAGE_KEY = 'prompt-liduchuan:repos';
+
+    function loadRepos() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [''];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [''];
+        const cleaned = parsed.map(v => String(v ?? '')).filter((v, i, arr) => {
+          // keep empty only if it's the sole row
+          return true;
+        });
+        const nonEmpty = cleaned.filter(v => v.trim());
+        if (nonEmpty.length) return cleaned.length ? cleaned : nonEmpty;
+        return [''];
+      } catch (e) {
+        return [''];
+      }
+    }
+
+    function saveRepos() {
+      try {
+        const values = collectRepos();
+        // Prefer current rows state; fall back to DOM
+        const toSave = (rows && rows.length ? rows : values).map(v => String(v ?? ''));
+        // Persist even empty strings so row count is restored; trim trailing empties but keep one
+        let out = toSave.slice();
+        while (out.length > 1 && !out[out.length - 1].trim()) out.pop();
+        if (!out.length) out = [''];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+      } catch (e) {
+        /* private mode / quota — ignore */
+      }
+    }
+
+    function normalizeUrl(raw) {
+      const t = (raw || '').trim().replace(/\/$/, '');
+      if (!t) return '';
+      if (/^https?:\/\//i.test(t)) return t;
+      if (/^github\.com\//i.test(t)) return 'https://' + t;
+      return t;
+    }
+
+    function expandInputs(values) {
+      const out = [];
+      for (const v of values) {
+        const parts = String(v || '').split(/\n+/).map(s => s.trim()).filter(Boolean);
+        if (parts.length) out.push(...parts);
+        else out.push('');
+      }
+      return out.length ? out : [''];
+    }
+
+    function collectRepos() {
+      return [...listEl.querySelectorAll('input')].map(i => i.value);
+    }
+
+    function validRepos() {
+      const expanded = expandInputs(collectRepos()).map(normalizeUrl).filter(Boolean);
+      const unique = [...new Set(expanded)];
+      const invalid = unique.filter(u => !GH_RE.test(u));
+      return { unique, invalid };
+    }
+
+    function renderPrompt() {
+      const { unique, invalid } = validRepos();
+      const reposBlock = unique.length ? unique.join('\n') : PLACEHOLDER;
+      previewEl.textContent = TEMPLATE.replace('{{REPOS}}', reposBlock);
+      countEl.textContent = unique.length + ' 个仓库';
+      const ok = unique.length > 0 && invalid.length === 0;
+      btnCopy.disabled = !ok;
+      btnCopy2.disabled = !ok;
+      if (!unique.length) {
+        statusEl.textContent = '请至少填写一个有效的 GitHub 仓库地址';
+      } else if (invalid.length) {
+        statusEl.textContent = '存在无效地址：' + invalid.join('、');
+      } else {
+        statusEl.textContent = '';
+      }
+      [...listEl.querySelectorAll('input')].forEach(input => {
+        const pieces = expandInputs([input.value]).map(normalizeUrl).filter(Boolean);
+        const bad = pieces.some(u => !GH_RE.test(u));
+        input.classList.toggle('invalid', bad);
+      });
+      saveRepos();
+    }
+
+    function renderRows() {
+      listEl.innerHTML = '';
+      rows.forEach((value, idx) => {
+        const row = document.createElement('div');
+        row.className = 'repo-row';
+        const input = document.createElement('input');
+        input.type = 'url';
+        input.id = 'repo-' + idx;
+        input.placeholder = 'https://github.com/org/repo';
+        input.value = value;
+        input.autocomplete = 'off';
+        input.spellcheck = false;
+        input.addEventListener('input', () => {
+          rows[idx] = input.value;
+          // if pasted multi-line, expand into rows
+          if (input.value.includes('\n')) {
+            const all = expandInputs(collectRepos());
+            rows = all.length ? all : [''];
+            renderRows();
+            return;
+          }
+          renderPrompt();
+        });
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'ghost-danger';
+        remove.textContent = '删除';
+        remove.disabled = rows.length === 1;
+        remove.addEventListener('click', () => {
+          rows.splice(idx, 1);
+          if (!rows.length) rows = [''];
+          renderRows();
+        });
+        row.append(input, remove);
+        listEl.appendChild(row);
+      });
+      renderPrompt();
+    }
+
+    function showToast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    async function copyPrompt() {
+      const { unique, invalid } = validRepos();
+      if (!unique.length || invalid.length) {
+        showToast('请先修正仓库地址');
+        return;
+      }
+      const text = previewEl.textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('已复制完整提示词');
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('已复制完整提示词');
+      }
+    }
+
+    document.getElementById('btn-add').addEventListener('click', () => {
+      rows.push('');
+      renderRows();
+      listEl.querySelector('input:last-of-type')?.focus();
+    });
+    btnCopy.addEventListener('click', copyPrompt);
+    btnCopy2.addEventListener('click', copyPrompt);
+
+    rows = loadRepos();
+    if (!rows.length) rows = [''];
+    renderRows();
+  </script>
+</body>
+</html>
