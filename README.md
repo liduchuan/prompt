@@ -1,13 +1,13 @@
 # prompt-liduchuan
 
-提示词模板站点：内置「产品自动迭代智能体」全文，通过填写目标仓库 URL 生成可复制提示词。
+提示词模板站点：内置「产品自动迭代智能体」全文，支持只读预览与一键复制。
 
 ## 功能
 
-- 多仓库 URL 输入（可添加/删除，支持粘贴多行）
-- 实时预览完整提示词
+- 展示完整提示词（来源：`public/template.md`）
 - 一键复制
-- GitHub URL 基础校验
+- 说明待办扫描：`is:issue state:open archived:false assignee:@me sort:updated-desc`
+- 说明已有 PR 跟进：检查 pending / unresolved 评论与 Changes Requested，有则在原分支解决
 - Favicon：`public/favicon.svg` / `favicon.png`
 
 ## 地址
@@ -26,12 +26,15 @@
 
 ## 如何更新提示词
 
-**直接编辑 `public/template.md`，然后部署即可。** 无需修改任何其他文件。
+**直接编辑 `public/template.md`，然后部署即可。** 站点页只做预览与复制，不再要求填写目标仓库 URL。
 
-部署后，新的模板内容会立即生效：
+部署：
 
 ```bash
 npx wrangler deploy
 ```
 
-模板文件使用 `{{REPOS}}` 占位符，运行时会被用户填写的仓库列表替换。
+提示词核心约定：
+
+1. 扫描分配给当前 GitHub 登录用户的 open issues（`assignee:@me`），不再维护固定目标仓库列表。
+2. 若 issue 已有相关 open PR：跟进 pending / unresolved 评论，禁止另开第二 PR。
