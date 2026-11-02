@@ -144,20 +144,77 @@
     .preview-tools {
       display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
     }
-    pre#preview {
+    .markdown-preview {
       margin: 0;
       max-height: min(70vh, 820px);
       overflow: auto;
-      white-space: pre-wrap;
       word-break: break-word;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12.5px;
-      line-height: 1.55;
       color: var(--code-text);
       background: var(--code-bg);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 14px;
+      padding: 18px;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .markdown-preview > :first-child { margin-top: 0; }
+    .markdown-preview > :last-child { margin-bottom: 0; }
+    .markdown-preview h1,
+    .markdown-preview h2,
+    .markdown-preview h3,
+    .markdown-preview h4,
+    .markdown-preview h5,
+    .markdown-preview h6 {
+      color: var(--text);
+      line-height: 1.3;
+      margin: 1.2em 0 .55em;
+    }
+    .markdown-preview h1 { font-size: 21px; }
+    .markdown-preview h2 { font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+    .markdown-preview h3 { font-size: 16px; }
+    .markdown-preview p { margin: .7em 0; }
+    .markdown-preview ul,
+    .markdown-preview ol { margin: .65em 0; padding-left: 1.65em; }
+    .markdown-preview li { margin: .25em 0; }
+    .markdown-preview li > ul,
+    .markdown-preview li > ol { margin: .2em 0; }
+    .markdown-preview code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .9em;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 1px 5px;
+    }
+    .markdown-preview pre {
+      overflow: auto;
+      margin: 1em 0;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #e2e8f0;
+    }
+    .markdown-preview pre code {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .markdown-preview blockquote {
+      margin: 1em 0;
+      padding: 2px 14px;
+      border-left: 3px solid var(--accent);
+      color: var(--muted);
+    }
+    .markdown-preview hr { border: 0; border-top: 1px solid var(--border); margin: 1.4em 0; }
+    .markdown-preview a { color: var(--accent); }
+    .markdown-preview strong { color: var(--text); }
+    .markdown-preview .markdown-code-language {
+      display: block;
+      margin: -4px 0 6px;
+      color: var(--muted);
+      font: 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
     .status {
       font-size: 12px; color: var(--muted); margin-top: 10px; min-height: 16px;
@@ -242,7 +299,7 @@
           </div>
         </div>
         <div class="card-bd">
-          <pre id="preview">正在加载 public/template.md …</pre>
+          <article id="preview" class="markdown-preview" aria-live="polite">正在加载 public/template.md …</article>
         </div>
       </section>
     </div>
@@ -270,8 +327,132 @@
     const btnCopy2 = document.getElementById('btn-copy-2');
     const btnReload = document.getElementById('btn-reload');
 
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char]));
+    }
+
+    function renderInline(value) {
+      let html = escapeHtml(value);
+      html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+      html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+      html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+      html = html.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+      return html;
+    }
+
+    function renderList(lines, start) {
+      const first = lines[start].match(/^(\s*)([-+*]|\d+\.)\s+(.+)$/);
+      const baseIndent = first[1].length;
+      const ordered = /\d+\./.test(first[2]);
+      const tag = ordered ? 'ol' : 'ul';
+      const items = [];
+      let index = start;
+
+      while (index < lines.length) {
+        const match = lines[index].match(/^(\s*)([-+*]|\d+\.)\s+(.+)$/);
+        if (!match || match[1].length < baseIndent) break;
+        if (match[1].length > baseIndent) {
+          if (items.length) {
+            const nested = renderList(lines, index);
+            items[items.length - 1] += nested.html;
+            index = nested.next;
+            continue;
+          }
+          break;
+        }
+        const isOrdered = /\d+\./.test(match[2]);
+        if (isOrdered !== ordered) break;
+        items.push('<li>' + renderInline(match[3]) + '</li>');
+        index += 1;
+      }
+
+      return { html: '<' + tag + '>' + items.join('') + '</' + tag + '>', next: index };
+    }
+
+    function renderMarkdown(markdown) {
+      const lines = markdown.replace(/\r\n?/g, '\n').split('\n');
+      const blocks = [];
+      let paragraph = [];
+      let index = 0;
+
+      function flushParagraph() {
+        if (paragraph.length) {
+          blocks.push('<p>' + paragraph.map(renderInline).join('<br>') + '</p>');
+          paragraph = [];
+        }
+      }
+
+      while (index < lines.length) {
+        const line = lines[index];
+        const fence = line.match(/^```\s*([\w-]*)\s*$/);
+        if (fence) {
+          flushParagraph();
+          const code = [];
+          index += 1;
+          while (index < lines.length && !/^```\s*$/.test(lines[index])) {
+            code.push(lines[index]);
+            index += 1;
+          }
+          if (index < lines.length) index += 1;
+          const language = fence[1]
+            ? '<span class="markdown-code-language">' + escapeHtml(fence[1]) + '</span>'
+            : '';
+          blocks.push('<pre>' + language + '<code>' + escapeHtml(code.join('\n')) + '</code></pre>');
+          continue;
+        }
+        if (!line.trim()) {
+          flushParagraph();
+          index += 1;
+          continue;
+        }
+        const heading = line.match(/^(#{1,6})\s+(.+)$/);
+        if (heading) {
+          flushParagraph();
+          const level = heading[1].length;
+          blocks.push('<h' + level + '>' + renderInline(heading[2]) + '</h' + level + '>');
+          index += 1;
+          continue;
+        }
+        if (/^\s*([-*_])(?:\s*\1){2,}\s*$/.test(line)) {
+          flushParagraph();
+          blocks.push('<hr>');
+          index += 1;
+          continue;
+        }
+        if (/^\s*([-+*]|\d+\.)\s+/.test(line)) {
+          flushParagraph();
+          const list = renderList(lines, index);
+          blocks.push(list.html);
+          index = list.next;
+          continue;
+        }
+        if (/^>\s?/.test(line)) {
+          flushParagraph();
+          const quote = [];
+          while (index < lines.length && /^>\s?/.test(lines[index])) {
+            quote.push(lines[index].replace(/^>\s?/, ''));
+            index += 1;
+          }
+          blocks.push('<blockquote>' + quote.map(renderInline).join('<br>') + '</blockquote>');
+          continue;
+        }
+        paragraph.push(line);
+        index += 1;
+      }
+      flushParagraph();
+      return blocks.join('');
+    }
+
     function renderPrompt() {
-      previewEl.textContent = TEMPLATE || '（模板为空）';
+      previewEl.innerHTML = TEMPLATE ? renderMarkdown(TEMPLATE) : '<p>（模板为空）</p>';
       const ok = Boolean(TEMPLATE && TEMPLATE.trim());
       btnCopy.disabled = !ok;
       btnCopy2.disabled = !ok;
@@ -319,7 +500,7 @@
       } catch (e) {
         console.error('Failed to load template:', e);
         TEMPLATE = '';
-        previewEl.textContent = '加载模板失败，请刷新页面重试';
+        previewEl.innerHTML = '<p>加载模板失败，请刷新页面重试</p>';
         loadStateEl.textContent = '加载失败';
         statusEl.textContent = '加载模板失败，请刷新页面重试';
         statusEl.classList.add('err');
