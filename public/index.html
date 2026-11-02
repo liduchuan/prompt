@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>产品自动迭代智能体 · 提示词模板</title>
   <meta name="theme-color" content="#f5f7fb" />
-  <meta name="description" content="填写目标仓库，生成可复制的产品自动迭代智能体提示词" />
+  <meta name="description" content="预览并复制「产品自动迭代智能体」提示词：按 assignee:@me 扫描 open issues，并跟进已有 PR 的 pending 评论" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
   <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
@@ -24,7 +24,6 @@
       --danger: #e11d48;
       --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
       --radius: 18px;
-      --input-bg: #f8fafc;
       --code-bg: #f1f5f9;
       --code-text: #1e293b;
     }
@@ -62,7 +61,7 @@
     .sub { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
     .grid {
       display: grid;
-      grid-template-columns: minmax(280px, 380px) 1fr;
+      grid-template-columns: minmax(280px, 400px) 1fr;
       gap: 16px;
       align-items: start;
     }
@@ -82,34 +81,50 @@
     }
     .card-hd h2 { margin: 0; font-size: 15px; font-weight: 600; }
     .card-bd { padding: 14px 18px 18px; }
-    label.field-label {
-      display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px;
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 4px 10px;
     }
-    .repo-list { display: grid; gap: 10px; }
-    .repo-row {
+    .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+    .lede {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .points {
+      margin: 0;
+      padding: 0;
+      list-style: none;
       display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
-      align-items: start;
+      gap: 10px;
     }
-    input[type="url"], input[type="text"] {
-      width: 100%;
+    .points li {
       border: 1px solid var(--border);
-      background: var(--input-bg);
+      background: var(--panel-strong);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+    .points strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .points span, .points code {
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    code.inline {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1px 5px;
       color: var(--text);
-      border-radius: 12px;
-      padding: 11px 12px;
-      font: inherit;
-      font-size: 14px;
-      outline: none;
-    }
-    input:focus { border-color: rgba(59,130,246,.75); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
-    input.invalid { border-color: rgba(225,29,72,.75); }
-    .hint {
-      font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5;
-    }
-    .err {
-      font-size: 12px; color: var(--danger); margin-top: 4px; min-height: 16px;
     }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
     button {
@@ -126,14 +141,6 @@
     button.primary:disabled {
       opacity: .45; cursor: not-allowed;
     }
-    button.ghost-danger:hover { border-color: rgba(225,29,72,.55); color: #be123c; background: #fff1f2; }
-    .pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 12px; color: var(--muted);
-      border: 1px solid var(--border); border-radius: 999px;
-      padding: 4px 10px;
-    }
-    .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
     .preview-tools {
       display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
     }
@@ -152,6 +159,10 @@
       border-radius: 14px;
       padding: 14px;
     }
+    .status {
+      font-size: 12px; color: var(--muted); margin-top: 10px; min-height: 16px;
+    }
+    .status.err { color: var(--danger); }
     .toast {
       position: fixed; right: 16px; bottom: 16px;
       background: #ffffff; border: 1px solid var(--border);
@@ -187,25 +198,38 @@
       <img class="logo" src="/favicon.png" width="48" height="48" alt="站点图标" />
       <div>
         <h1>产品自动迭代智能体 · 提示词模板</h1>
-        <p class="sub">填写一个或多个 GitHub 仓库地址，实时生成完整可复制提示词。模板已内置「产品自动迭代智能体」全文。</p>
+        <p class="sub">只读预览并复制完整提示词。扫描范围改为「分配给自己的 open issues」，已有 PR 则跟进 pending 评论，不再填写固定目标仓库。</p>
       </div>
     </header>
 
     <div class="grid">
       <section class="card">
         <div class="card-hd">
-          <h2>表单参数</h2>
-          <span class="pill"><span class="dot"></span> 目标仓库</span>
+          <h2>怎么用这份提示词</h2>
+          <span class="pill"><span class="dot"></span> assignee 扫描</span>
         </div>
         <div class="card-bd">
-          <label class="field-label" for="repo-0">GitHub 仓库 URL（可多个）</label>
-          <div id="repo-list" class="repo-list" aria-live="polite"></div>
-          <p class="hint">格式示例：https://github.com/org/repo 。可点「添加仓库」增加输入框，也支持在同一框粘贴多行。仓库列表会自动保存在本机浏览器（localStorage）。</p>
+          <p class="lede">把 issue assign 给当前 GitHub 登录用户后，例程会自动捡起。站点本身不再收集仓库 URL。</p>
+          <ul class="points">
+            <li>
+              <strong>待办 Issue 扫描</strong>
+              <span>查询条件：</span>
+              <code class="inline">is:issue state:open archived:false assignee:@me sort:updated-desc</code>
+            </li>
+            <li>
+              <strong>已有 PR 跟进</strong>
+              <span>查重命中 open PR 后，检查 pending / unresolved 评论与 Changes Requested；有则在原分支解决并 resolve，禁止另开第二 PR。</span>
+            </li>
+            <li>
+              <strong>硬规则摘要</strong>
+              <span>仅在 Alex 本机编码与 push；PR 生命周期用 Cursor GitHub（Cursor 身份）；禁止 Cloud Agent 写代码；禁止自动 merge；录屏须锁定目标窗口。</span>
+            </li>
+          </ul>
           <div class="actions">
-            <button type="button" id="btn-add">＋ 添加仓库</button>
             <button type="button" class="primary" id="btn-copy">复制完整提示词</button>
+            <button type="button" id="btn-reload">重新加载模板</button>
           </div>
-          <p id="form-status" class="err" role="status"></p>
+          <p id="form-status" class="status" role="status"></p>
         </div>
       </section>
 
@@ -213,12 +237,12 @@
         <div class="card-hd">
           <h2>完整提示词预览</h2>
           <div class="preview-tools">
-            <span class="pill" id="repo-count">0 个仓库</span>
+            <span class="pill" id="load-state">加载中…</span>
             <button type="button" id="btn-copy-2">一键复制</button>
           </div>
         </div>
         <div class="card-bd">
-          <pre id="preview"></pre>
+          <pre id="preview">正在加载 public/template.md …</pre>
         </div>
       </section>
     </div>
@@ -238,142 +262,20 @@
 
   <script>
     let TEMPLATE = "";
-    const PLACEHOLDER = "https://github.com/<org>/<repo-a>\nhttps://github.com/<org>/<repo-b>";
-    const GH_RE = /^(https?:\/\/)?(www\.)?github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/?$/i;
-
-    const listEl = document.getElementById('repo-list');
     const previewEl = document.getElementById('preview');
     const statusEl = document.getElementById('form-status');
-    const countEl = document.getElementById('repo-count');
+    const loadStateEl = document.getElementById('load-state');
     const toastEl = document.getElementById('toast');
     const btnCopy = document.getElementById('btn-copy');
     const btnCopy2 = document.getElementById('btn-copy-2');
-
-    let rows = [''];
-    const STORAGE_KEY = 'prompt-liduchuan:repos';
-
-    function loadRepos() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return [''];
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return [''];
-        const cleaned = parsed.map(v => String(v ?? '')).filter((v, i, arr) => {
-          // keep empty only if it's the sole row
-          return true;
-        });
-        const nonEmpty = cleaned.filter(v => v.trim());
-        if (nonEmpty.length) return cleaned.length ? cleaned : nonEmpty;
-        return [''];
-      } catch (e) {
-        return [''];
-      }
-    }
-
-    function saveRepos() {
-      try {
-        const values = collectRepos();
-        // Prefer current rows state; fall back to DOM
-        const toSave = (rows && rows.length ? rows : values).map(v => String(v ?? ''));
-        // Persist even empty strings so row count is restored; trim trailing empties but keep one
-        let out = toSave.slice();
-        while (out.length > 1 && !out[out.length - 1].trim()) out.pop();
-        if (!out.length) out = [''];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
-      } catch (e) {
-        /* private mode / quota — ignore */
-      }
-    }
-
-    function normalizeUrl(raw) {
-      const t = (raw || '').trim().replace(/\/$/, '');
-      if (!t) return '';
-      if (/^https?:\/\//i.test(t)) return t;
-      if (/^github\.com\//i.test(t)) return 'https://' + t;
-      return t;
-    }
-
-    function expandInputs(values) {
-      const out = [];
-      for (const v of values) {
-        const parts = String(v || '').split(/\n+/).map(s => s.trim()).filter(Boolean);
-        if (parts.length) out.push(...parts);
-        else out.push('');
-      }
-      return out.length ? out : [''];
-    }
-
-    function collectRepos() {
-      return [...listEl.querySelectorAll('input')].map(i => i.value);
-    }
-
-    function validRepos() {
-      const expanded = expandInputs(collectRepos()).map(normalizeUrl).filter(Boolean);
-      const unique = [...new Set(expanded)];
-      const invalid = unique.filter(u => !GH_RE.test(u));
-      return { unique, invalid };
-    }
+    const btnReload = document.getElementById('btn-reload');
 
     function renderPrompt() {
-      const { unique, invalid } = validRepos();
-      const reposBlock = unique.length ? unique.join('\n') : PLACEHOLDER;
-      previewEl.textContent = TEMPLATE.replace('{{REPOS}}', reposBlock);
-      countEl.textContent = unique.length + ' 个仓库';
-      const ok = unique.length > 0 && invalid.length === 0;
+      previewEl.textContent = TEMPLATE || '（模板为空）';
+      const ok = Boolean(TEMPLATE && TEMPLATE.trim());
       btnCopy.disabled = !ok;
       btnCopy2.disabled = !ok;
-      if (!unique.length) {
-        statusEl.textContent = '请至少填写一个有效的 GitHub 仓库地址';
-      } else if (invalid.length) {
-        statusEl.textContent = '存在无效地址：' + invalid.join('、');
-      } else {
-        statusEl.textContent = '';
-      }
-      [...listEl.querySelectorAll('input')].forEach(input => {
-        const pieces = expandInputs([input.value]).map(normalizeUrl).filter(Boolean);
-        const bad = pieces.some(u => !GH_RE.test(u));
-        input.classList.toggle('invalid', bad);
-      });
-      saveRepos();
-    }
-
-    function renderRows() {
-      listEl.innerHTML = '';
-      rows.forEach((value, idx) => {
-        const row = document.createElement('div');
-        row.className = 'repo-row';
-        const input = document.createElement('input');
-        input.type = 'url';
-        input.id = 'repo-' + idx;
-        input.placeholder = 'https://github.com/org/repo';
-        input.value = value;
-        input.autocomplete = 'off';
-        input.spellcheck = false;
-        input.addEventListener('input', () => {
-          rows[idx] = input.value;
-          // if pasted multi-line, expand into rows
-          if (input.value.includes('\n')) {
-            const all = expandInputs(collectRepos());
-            rows = all.length ? all : [''];
-            renderRows();
-            return;
-          }
-          renderPrompt();
-        });
-        const remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'ghost-danger';
-        remove.textContent = '删除';
-        remove.disabled = rows.length === 1;
-        remove.addEventListener('click', () => {
-          rows.splice(idx, 1);
-          if (!rows.length) rows = [''];
-          renderRows();
-        });
-        row.append(input, remove);
-        listEl.appendChild(row);
-      });
-      renderPrompt();
+      loadStateEl.textContent = ok ? '已加载全文' : '未加载';
     }
 
     function showToast(msg) {
@@ -384,12 +286,11 @@
     }
 
     async function copyPrompt() {
-      const { unique, invalid } = validRepos();
-      if (!unique.length || invalid.length) {
-        showToast('请先修正仓库地址');
+      if (!TEMPLATE.trim()) {
+        showToast('模板尚未加载');
         return;
       }
-      const text = previewEl.textContent;
+      const text = TEMPLATE;
       try {
         await navigator.clipboard.writeText(text);
         showToast('已复制完整提示词');
@@ -404,29 +305,30 @@
       }
     }
 
-    document.getElementById('btn-add').addEventListener('click', () => {
-      rows.push('');
-      renderRows();
-      listEl.querySelector('input:last-of-type')?.focus();
-    });
-    btnCopy.addEventListener('click', copyPrompt);
-    btnCopy2.addEventListener('click', copyPrompt);
-
     async function loadTemplate() {
+      statusEl.textContent = '';
+      statusEl.classList.remove('err');
+      loadStateEl.textContent = '加载中…';
+      btnCopy.disabled = true;
+      btnCopy2.disabled = true;
       try {
-        const response = await fetch('/template.md');
-        if (!response.ok) throw new Error('Failed to load template');
+        const response = await fetch('/template.md', { cache: 'no-store' });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
         TEMPLATE = await response.text();
         renderPrompt();
       } catch (e) {
         console.error('Failed to load template:', e);
+        TEMPLATE = '';
+        previewEl.textContent = '加载模板失败，请刷新页面重试';
+        loadStateEl.textContent = '加载失败';
         statusEl.textContent = '加载模板失败，请刷新页面重试';
+        statusEl.classList.add('err');
       }
     }
 
-    rows = loadRepos();
-    if (!rows.length) rows = [''];
-    renderRows();
+    btnCopy.addEventListener('click', copyPrompt);
+    btnCopy2.addEventListener('click', copyPrompt);
+    btnReload.addEventListener('click', loadTemplate);
     loadTemplate();
   </script>
 </body>
