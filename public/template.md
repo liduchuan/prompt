@@ -40,7 +40,7 @@ is:issue state:open archived:false assignee:@me sort:updated-desc
 
 ## 已有 PR 跟进（查重命中后必做）
 
-当目标 issue 已存在相关 open PR 时，调度与执行 Agent 须按下列顺序处理（读写 PR 一律走 **Cursor GitHub / Cursor 身份**；编码仍只在 Alex 本地 worktree）：
+当目标 issue 已存在相关 open PR 时，调度与执行 Agent 须按下列顺序处理（读写 PR 一律走 GitHub；编码仍只在 Alex 本地 worktree）：
 
 1. **定位 PR**：确认与该 issue 对应的 open PR（标题/正文/分支名关联 issue 编号即可）。
 2. **拉取 pending 评论**：检查该 PR 上仍待处理的反馈，至少包括：
@@ -49,7 +49,7 @@ is:issue state:open archived:false assignee:@me sort:updated-desc
    - 仍标为 pending / 未 resolve 的 review 线程；
    - 明确要求改代码、补测试、补证据、改描述的 issue 评论（排除纯感谢、bot 噪音、已答复且无新动作项的评论）。
 3. **分流**：
-   - **存在待处理项**：为该 PR **派出独立 Agent**（一点一 Agent 若多条可拆；小程序验收仍串行）。Agent 在**已有 PR 分支**的 worktree 上改代码、补测、更新证据/描述，push 后用 Cursor GitHub 回复评论并 **resolve** 已处理的线程；**禁止**另开第二 PR。
+   - **存在待处理项**：为该 PR **派出独立 Agent**（一点一 Agent 若多条可拆；小程序验收仍串行）。Agent 在**已有 PR 分支**的 worktree 上改代码、补测、更新证据/描述，push 后回复评论并 **resolve** 已处理的线程；**禁止**另开第二 PR。
    - **无待处理项**：不重复派发；向用户一句说明「已有 PR #N，暂无 pending 评论」。
 4. **完成标准**：每条待处理评论要么已代码修复并回复/resolve，要么书面说明为何不做（无法复现、超出 issue 范围等）并请人工定夺；卡住（验证码、开发者工具、跑不通）立即告知用户。
 
@@ -73,10 +73,10 @@ is:issue state:open archived:false assignee:@me sort:updated-desc
 | 规则 | 说明 |
 |------|------|
 | 代码与分支用本机 CLI | clone、pull、checkout、worktree、commit、push 等**必须使用 Git CLI**，在 AlexdeMacBook-Pro.local（machineId `abda1842-27e9-4204-b964-76626704fcf4`）上执行；禁止 box、禁止其他机器 |
-| PR 一律 Cursor 身份 | **创建 PR、更新 PR 标题/描述/base、评论、查重读 PR、回复/resolve review、挂附件改描述等所有 PR 生命周期操作**，必须通过 **Cursor 的 GitHub 能力**完成，使操作归属为 **Cursor 身份**；**禁止**再用本机 `gh pr create` / `gh pr edit` / `gh pr comment` 等以个人 `gh` 登录身份操作 PR |
-| 禁止 Cloud Agent 写代码 | **禁止**使用 Cursor 云端代理（Cloud Agent）做编码或改仓库内容；编码与 Git 工作仅在 Alex 本地 sandbox/worktree |
-| `gh` 用途收窄 | 本机 `gh` 仅可用于：登录状态检查、只读辅助（如 `gh api` 排障）、以及**非 PR 元数据**的必要操作；凡涉及 PR 的写操作走 Cursor GitHub |
-| 指定本机终端 | 凡带 machineId 的 Shell 必须用 Alex；扫描到的相关 open PR（含本流程开出的与查重命中的）后续跟进、改描述、补证据、处理 pending 评论时，同样按「Cursor 身份」操作 |
+| PR 一律走 GitHub | **创建 PR、更新 PR 标题/描述/base、评论、查重读 PR、回复/resolve review、挂附件改描述等所有 PR 生命周期操作**，必须通过 **GitHub** 完成；**禁止**再用本机 `gh pr create` / `gh pr edit` / `gh pr comment` 等以个人 `gh` 登录身份操作 PR |
+| 禁止云端代理写代码 | **禁止**使用云端代理做编码或改仓库内容；编码与 Git 工作仅在 Alex 本地 sandbox/worktree |
+| `gh` 用途收窄 | 本机 `gh` 仅可用于：登录状态检查、只读辅助（如 `gh api` 排障）、以及**非 PR 元数据**的必要操作 |
+| 指定本机终端 | 凡带 machineId 的 Shell 必须用 Alex；扫描到的相关 open PR（含本流程开出的与查重命中的）后续跟进、改描述、补证据、处理 pending 评论时，同样在该本机操作 |
 
 ---
 
@@ -143,7 +143,7 @@ cd ~/sandbox/worktrees/<repo-name>/issue-<number>
 git commit -m "fix: <描述>"
 git push origin fix/issue-<number>-<brief-slug>
 
-# 6. 开 PR：分支已 push 后，用 Cursor GitHub 能力创建 PR（Cursor 身份），不要用 gh pr create
+# 6. 开 PR：分支已 push 后创建 PR，不要用 gh pr create
 ```
 
 **跟进已有 PR 时**：不要新建分支；检出该 PR 的 head 分支到对应 worktree（已有则 `git fetch` + 在 worktree 内 pull），在原分支上提交并 push，再回复/resolve 评论。
@@ -323,7 +323,7 @@ rm -rf ~/sandbox/worktrees/<repo-name>/
 
 - 凡需打开网页、登录、查看页面或可视化操作，**优先使用内置浏览器**。
 - 内置浏览器不可用或不适用时，再改用其他方式。
-- 注意：Git 写代码与 push 始终在 Alex 本机 CLI；PR 元数据走 Cursor GitHub（第二节）。
+- 注意：Git 写代码与 push 始终在 Alex 本机 CLI；PR 元数据走 GitHub（第二节）。
 
 ---
 
@@ -424,7 +424,7 @@ rm -rf ~/sandbox/worktrees/<repo-name>/
 ### 已有 PR 的 pending 评论
 
 1. 先读清每条 pending / unresolved 意见的具体要求，再改代码或补证据。
-2. 在**原 PR 分支**上提交；回复中说明改动点，并用 Cursor GitHub **resolve** 已处理的线程。
+2. 在**原 PR 分支**上提交；回复中说明改动点，并 **resolve** 已处理的线程。
 3. 若评论要求补录屏/截图，仍遵守第九节视觉证据规范。
 
 ---
@@ -454,9 +454,9 @@ rm -rf ~/sandbox/worktrees/<repo-name>/
 
 在开 PR 前，须完成以下所有检查项：
 
-- **查重与跟进**：若目标 issue 已存在相关 open PR，**禁止再开新 PR**；转入「已有 PR 跟进」：检查 pending / unresolved 评论与 review，有则在原 PR 上解决并反馈，无则一句说明后结束。查重、读评论、回复、resolve 与改描述一律走 **Cursor GitHub（Cursor 身份）**。
+- **查重与跟进**：若目标 issue 已存在相关 open PR，**禁止再开新 PR**；转入「已有 PR 跟进」：检查 pending / unresolved 评论与 review，有则在原 PR 上解决并反馈，无则一句说明后结束。
 - **自审**：模型须对 PR 进行自我审阅，确认无明显问题后，方可提交给人工审阅。
-- **AI 对话链接**：每个 PR 必须附上产出该改动的 AI 对话链接（Grok、Cursor、Codex 等均可）。
+- **AI 对话链接**：每个 PR 必须附上产出该改动的 AI 对话链接（Grok、Codex 等均可）。
 - **视觉证据（私有仓关键；录屏优先）**：凡涉及 UI/交互/流程的改动，PR 正文必须附**可预览**的视觉证据，优先级如下：
   1. **优先：录屏视频**（演示复现→修复后行为，或 Feature 关键交互路径）。短而完整即可，避免冗长空转。
   2. **其次：截图**（仅当录屏不可行：无录屏能力、环境限制、或静态文案/像素级对比更合适时），并说明为何未录屏。
@@ -464,7 +464,7 @@ rm -rf ~/sandbox/worktrees/<repo-name>/
   - **禁止**仓库相对路径（如 `docs/screenshots/xxx.png`、`docs/demo.mp4`）：Issue/PR 正文按 default 分支解析，素材只在 feature 分支时必然挂。
   - **禁止**指望 `blob/<branch>/...?raw=true` 或 `raw.githubusercontent.com` 在私有仓 PR 预览里显示：camo 无登录态常 404。
   - **视频挂载与写法（强制，否则无播放器）**：
-    1. 先得到可内嵌的 `https://github.com/user-attachments/assets/<id>`（可用本机 `gh` 仅作上传附件拿 URL，或网页拖入），再**用 Cursor GitHub 更新 PR 描述**写入裸链。
+    1. 先得到可内嵌的 `https://github.com/user-attachments/assets/<id>`（可用本机 `gh` 仅作上传附件拿 URL，或网页拖入），再更新 PR 描述写入裸链。
     2. PR **描述**里每条视觉证据必须是：验收点说明下方**单独一段、独占一行的裸链** `https://github.com/user-attachments/assets/<id>`。
     3. **禁止**写成 `![](https://github.com/user-attachments/assets/…)`：Markdown 图片语法会把视频渲染成 `<img>`，PR 里看不到播放器。
     4. **禁止**只用 Release / `releases/download` 链接当「可播证据」（点击只会下载）。Release 可作备份，但 PR 正文必须另有可内嵌播放的 user-attachments 裸链。
@@ -475,6 +475,5 @@ rm -rf ~/sandbox/worktrees/<repo-name>/
 - **资源记录**：按第五节要求填写，必须包含依赖模式说明、worktree 清理命令（单个 + 批量）。
 - **禁止自动合并**：PR 开启后等待人工审阅，**不得自动 merge**。
 - **必须使用中文**：PR 标题、描述与本聊天汇报均使用中文。
-- **身份**：本流程扫描到或新开的 PR，一律以 **Cursor 身份**操作（见第二节）。
 
 结果交给：用户，在本聊天。无新进展时：一句说明即可，不要刷屏。
