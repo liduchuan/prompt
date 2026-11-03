@@ -38,3 +38,4 @@ npx wrangler deploy
 
 1. 扫描分配给当前 GitHub 登录用户的 open issues（`assignee:@me`），不再维护固定目标仓库列表。
 2. 若 issue 已有相关 open PR：跟进 pending / unresolved 评论，禁止另开第二 PR。
+3. 提示词保持模型无关：不绑定特定模型、IDE 或 GitHub 操作身份；PR 生命周期使用当前环境可用的 GitHub 手段（含本机 `gh`）。
