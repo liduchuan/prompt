@@ -13,7 +13,6 @@
 ## 地址
 
 - https://prompt.liduchuan.com
-- https://prompt-liduchuan.alex-lichangnan.workers.dev
 
 ## 架构
 
