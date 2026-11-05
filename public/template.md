@@ -10,17 +10,17 @@
 
 ## 执行机器（强制）
 
-- **必须且只能**在 **AlexdeMacBook-Pro.local** 上执行（machineId：`abda1842-27e9-4204-b964-76626704fcf4`）。
-- 所有 Shell / Git / `gh` 操作必须带该 machineId。
+- **必须且只能**在 **<设备名称>** 上执行。
+- 所有 Shell / Git / `gh` 操作必须在 **<设备名称>** 上执行。
 - **禁止**在机器人电脑（box）上 clone 或改代码。
-- **禁止**改绑到 wades-MacBook-Pro 或任何其他机器。
-- 若该机器离线或不可用：说明原因并结束本轮，**不得**改用其他机器或 box。
+- **禁止**改绑到 **<设备名称>** 以外的任何机器。
+- 若 **<设备名称>** 离线或不可用：说明原因并结束本轮，**不得**改用其他机器或 box。
 
 ---
 
 ## 待办 Issue 扫描
 
-每轮在 Alex 上用 GitHub 搜索拉取待办（`@me` = 当前 `gh` 登录账号），查询条件：
+每轮在 **<设备名称>** 上用 GitHub 搜索拉取待办（`@me` = 当前 `gh` 登录账号），查询条件：
 
 ```
 is:issue state:open archived:false assignee:@me sort:updated-desc
@@ -40,7 +40,7 @@ is:issue state:open archived:false assignee:@me sort:updated-desc
 
 ## 已有 PR 跟进（查重命中后必做）
 
-当目标 issue 已存在相关 open PR 时，调度与执行 Agent 须按下列顺序处理（读写 PR 一律走 GitHub；编码仍只在 Alex 本地 worktree）：
+当目标 issue 已存在相关 open PR 时，调度与执行 Agent 须按下列顺序处理（读写 PR 一律走 GitHub；编码仍只在 **<设备名称>** 本地 worktree）：
 
 1. **定位 PR**：确认与该 issue 对应的 open PR（标题/正文/分支名关联 issue 编号即可）。
 2. **拉取 pending 评论**：检查该 PR 上仍待处理的反馈，至少包括：
@@ -72,11 +72,11 @@ is:issue state:open archived:false assignee:@me sort:updated-desc
 
 | 规则 | 说明 |
 |------|------|
-| 代码与分支用本机 CLI | clone、pull、checkout、worktree、commit、push 等**必须使用 Git CLI**，在 AlexdeMacBook-Pro.local（machineId `abda1842-27e9-4204-b964-76626704fcf4`）上执行；禁止 box、禁止其他机器 |
+| 代码与分支用本机 CLI | clone、pull、checkout、worktree、commit、push 等**必须使用 Git CLI**，在 **<设备名称>** 上执行；禁止 box、禁止其他机器 |
 | PR 一律走 GitHub | **创建 PR、更新 PR 标题/描述/base、评论、查重读 PR、回复/resolve review、挂附件改描述等所有 PR 生命周期操作**，必须通过 **GitHub** 完成；**禁止**再用本机 `gh pr create` / `gh pr edit` / `gh pr comment` 等以个人 `gh` 登录身份操作 PR |
-| 禁止云端代理写代码 | **禁止**使用云端代理做编码或改仓库内容；编码与 Git 工作仅在 Alex 本地 sandbox/worktree |
+| 禁止云端代理写代码 | **禁止**使用云端代理做编码或改仓库内容；编码与 Git 工作仅在 **<设备名称>** 本地 sandbox/worktree |
 | `gh` 用途收窄 | 本机 `gh` 仅可用于：登录状态检查、只读辅助（如 `gh api` 排障）、以及**非 PR 元数据**的必要操作 |
-| 指定本机终端 | 凡带 machineId 的 Shell 必须用 Alex；扫描到的相关 open PR（含本流程开出的与查重命中的）后续跟进、改描述、补证据、处理 pending 评论时，同样在该本机操作 |
+| 指定本机终端 | 凡 Shell 操作必须在 **<设备名称>** 上执行；扫描到的相关 open PR（含本流程开出的与查重命中的）后续跟进、改描述、补证据、处理 pending 评论时，同样在该设备上操作 |
 
 ---
 
@@ -323,7 +323,7 @@ rm -rf ~/sandbox/worktrees/<repo-name>/
 
 - 凡需打开网页、登录、查看页面或可视化操作，**优先使用内置浏览器**。
 - 内置浏览器不可用或不适用时，再改用其他方式。
-- 注意：Git 写代码与 push 始终在 Alex 本机 CLI；PR 元数据走 GitHub（第二节）。
+- 注意：Git 写代码与 push 始终在 **<设备名称>** 本机 CLI；PR 元数据走 GitHub（第二节）。
 
 ---
 
